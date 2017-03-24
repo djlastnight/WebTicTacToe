@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Tic Tac Toe</title>
+    <script src="jquery-3.2.0.min.js"></script>
+    <style>
+        body {
+            background: repeating-linear-gradient(#7FB1C9,#A570CC);
+            width: 100%;
+            height: 100%;
+        }
+
+        #wrapper {
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            position: relative;
+            text-align: center;
+        }
+
+        table {
+            width: 300px;
+            height: 300px;
+            margin: auto auto;
+            margin-top: 10%;
+            margin-bottom: 10%;
+        }
+
+        td {
+            width: 100px;
+            height: 100px;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid gray;
+            border-radius: 20px;
+            box-shadow: gray 2px 2px 1px;
+        }
+
+        input[type='button'] {
+            width: 140px;
+            height: 40px;
+            border: 2px solid black;
+            border-radius: 10px;
+            background: linear-gradient(#7FB1C9, #b6fbff);
+            margin-top: 10px;
+        }
+
+        input[type='button']:hover {
+            background: white;
+            box-shadow: 2px 2px 2px;
+        }
+
+        .user-select-none {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrapper"></div>
+    <script>
+        var xTurn = true;
+        var cells = [];
+        var isGameOver = false;
+
+        $("document").ready(onDocumentReady);
+
+        function onDocumentReady() {
+            var table = createTable();
+            $("#wrapper").append(table);
+            $("td").on("click", onTdClick);
+            $("td").addClass("user-select-none");
+            $("td").on("mouseover", function () {
+                if (isGameOver) {
+                    return;
+                }
+
+                var td = $(this);
+                if (td.html().length == 0) {
+                    // Showing preview
+                    td.data("isPreview", true);
+                    td.html(xTurn ? "x" : "o");
+                    td.css("background-color", "rgba(128, 0, 128, 0.1)");
+                }
+            });
+
+            $("td").on("mouseleave", function () {
+                if (isGameOver) {
+                    return;
+                }
+
+                var td = $(this);
+                if (td.data("isPreview")) {
+                    td.html("");
+                    td.data("isPreview", false);
+                    td.css("background", "");
+                }
+            });
+        }
+
+        function createTable() {
+            var table = $("<table></table>");
+            for (var i = 0; i < 3; i++) {
+                var row = $("<tr></tr>");
+                for (var j = 0; j < 3; j++) {
+                    var col = $("<td></td>");
+                    col.data("index", 3 * i + j);
+                    row.append(col);
+                }
+
+                table.append(row);
+            }
+
+            return table;
+        }
+
+        function onTdClick() {
+            if (isGameOver) {
+                return;
+            }
+
+            var td = $(this);
+            if (td.data("sign")) {
+                return;
+            }
+
+            td.data("isPreview", false);
+            td.css("background", "linear-gradient(#56CCF2, #2F80ED)");
+
+
+            var sign = xTurn ? "X" : "O";
+            td.html(sign);
+            td.data("sign", sign);
+            var index = Number(td.data("index"));
+            cells[index] = sign;
+            var winData = checkForWinner();
+            if (winData) {
+                if (winData.length != 3) {
+                    var errorMsg = "Fatal error: Invalid winner data length (" +
+                        winData.length + ")! Expected length is 3.";
+
+                    alert(errorMsg);
+                    throw errorMsg;
+                }
+
+                // Highlighting the winner cells
+                var winCells = [];
+                for (var i = 0; i < winData.length; i++) {
+                    var winCell = $("td").filter(function (index, value) {
+                        return $(value).data("index") == winData[i];
+                    });
+
+                    winCells.push(winCell[0]);
+                }
+
+                $(winCells).css("background", "linear-gradient(to top, rgb(238, 205, 163), rgb(239, 98, 159))");
+
+                endGame("'" + sign.toUpperCase() + "' player wins the game!");
+                return;
+            }
+
+            var busyCells = cells.filter(function (x) { return x !== undefined });
+
+            if (busyCells.length == 9) {
+                endGame("It is a tie!");
+                return;
+            }
+
+            xTurn = !xTurn;
+        }
+
+        function checkForWinner() {
+            var winnerData;
+            // Searching horizontally
+            for (var row = 0; row < 9; row += 3) {
+                var rowData = [];
+                for (var col = 0; col < 3; col++) {
+                    var data = cells[row + col];
+                    if (data) {
+                        rowData.push(data);
+                    }
+                }
+
+                if (rowData[0] && rowData[0] === rowData[1] && rowData[1] === rowData[2]) {
+                    winnerData = [row, row + 1, row + 2];
+                    break;
+                }
+            }
+
+            // Searching vertically
+            for (var col = 0; col < 3; col++) {
+                var colData = [];
+                for (var row = 0; row < 9; row += 3) {
+                    var data = cells[row + col];
+                    if (data) {
+                        colData.push(data);
+                    }
+                }
+
+                if (colData[0] && colData[0] == colData[1] && colData[1] === colData[2]) {
+                    winnerData = [col, col + 3, col + 6];
+                    break;
+                }
+            }
+
+            // Searching diagonally
+            var middle = cells[4];
+            if (middle) {
+                var topLeft = cells[0];
+                var topRight = cells[2];
+                var bottomLeft = cells[6];
+                var bottomRight = cells[8];
+                if (middle === topLeft && middle == bottomRight) {
+                    winnerData = [0, 4, 8];
+                }
+
+                if (middle == topRight && middle == bottomLeft) {
+                    winnerData = [2, 4, 6];
+                }
+            }
+
+            return winnerData;
+        }
+
+        function endGame(message) {
+            isGameOver = true;
+            var div = $("<div></div>");
+            var p = $("<p></p>");
+            p.addClass("user-select-none");
+            p.html(message);
+            div.append(p);
+            div.css("margin", "0 auto");
+            var btn = $("<input type='button' value='Start new game' id='reset' />");
+            div.append(btn);
+            $("#wrapper").append(div);
+
+            btn.on("click", function () {
+                xTurn = true;
+                cells = [];
+                isGameOver = false;
+                $("td").empty();
+                $("td").removeData("sign");
+                $("td").css("background", "");
+                $("#wrapper div").remove();
+                $('html, body').animate({
+                    scrollTop: $("#wrapper").offset().top
+                }, 1000);
+            });
+
+            // Auto scrolling to reset button
+            $('html, body').animate({
+                scrollTop: $("#reset").offset().top
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
